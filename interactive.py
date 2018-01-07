@@ -18,6 +18,8 @@ def main():
     parser = options.get_parser('Generation')
     parser.add_argument('--path', metavar='FILE', required=True, action='append',
                         help='path(s) to model file(s)')
+    parser.add_argument('--output-file', metavar='FILE', required=True,
+                        help='translation output file')
     options.add_dataset_args(parser)
     options.add_generation_args(parser)
 
@@ -52,26 +54,28 @@ def main():
     align_dict = utils.load_align_dict(args.replace_unk)
 
     print('| Type the input sentence and press return:')
-    for src_str in sys.stdin:
-        src_str = src_str.strip()
-        src_tokens = tokenizer.Tokenizer.tokenize(src_str, src_dict, add_if_not_exist=False).long()
-        if use_cuda:
-            src_tokens = src_tokens.cuda()
-        translations = translator.generate(Variable(src_tokens.view(1, -1)))
-        hypos = translations[0]
-        print('O\t{}'.format(src_str))
+    with open(args.output_file, 'w') as fout:
+        for src_str in sys.stdin:
+            src_str = src_str.strip()
+            src_tokens = tokenizer.Tokenizer.tokenize(src_str, src_dict, add_if_not_exist=False).long()
+            if use_cuda:
+                src_tokens = src_tokens.cuda()
+            translations = translator.generate(Variable(src_tokens.view(1, -1)))
+            hypos = translations[0]
+            print('O\t{}'.format(src_str))
 
-        # Process top predictions
-        for hypo in hypos[:min(len(hypos), args.nbest)]:
-            hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
-                hypo_tokens=hypo['tokens'].int().cpu(),
-                src_str=src_str,
-                alignment=hypo['alignment'].int().cpu(),
-                align_dict=align_dict,
-                dst_dict=dst_dict,
-                remove_bpe=args.remove_bpe)
-            print('H\t{}\t{}'.format(hypo['score'], hypo_str))
-            print('A\t{}'.format(' '.join(map(str, alignment))))
+            # Process top predictions
+            for hypo in hypos[:min(len(hypos), args.nbest)]:
+                hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
+                    hypo_tokens=hypo['tokens'].int().cpu(),
+                    src_str=src_str,
+                    alignment=hypo['alignment'].int().cpu(),
+                    align_dict=align_dict,
+                    dst_dict=dst_dict,
+                    remove_bpe=args.remove_bpe)
+                print(hypo_str, file=fout)
+                print('H\t{}\t{}'.format(hypo['score'], hypo_str))
+                print('A\t{}'.format(' '.join(map(str, alignment))))
 
 
 if __name__ == '__main__':
