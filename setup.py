@@ -40,7 +40,7 @@ conv_tbc = create_extension(
     headers=['fairseq/clib/temporal_convolution_tbc/temporal_convolution_tbc.h'],
     sources=['fairseq/clib/temporal_convolution_tbc/temporal_convolution_tbc.cpp'],
     define_macros=[('WITH_CUDA', None)],
-    with_cuda=True,
+    with_cuda=False,
     extra_compile_args=['-std=c++11'],
     source_extension='.cpp',
 )
